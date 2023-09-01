@@ -9,7 +9,7 @@ data = pd.read_csv(r'oving1\taskA\length_weight.csv')
 x_train = torch.tensor(data.iloc[:, 0].values, dtype=torch.float32).view(-1, 1)
 y_train = torch.tensor(data.iloc[:, 1].values, dtype=torch.float32).view(-1, 1)
 
-class LinearRegressionModel:
+class LinearRegressionModel:    
     def __init__(self):
         self.W = torch.tensor([[0.0]], requires_grad=True)
         self.b = torch.tensor([[0.0]], requires_grad=True)
@@ -23,8 +23,8 @@ class LinearRegressionModel:
 
 model = LinearRegressionModel()
 
-optimizer = torch.optim.SGD([model.W, model.b], 0.0001)  # Learning rate as needed
-for epoch in range(200_000):  # Number of epochs as needed
+optimizer = torch.optim.SGD([model.W, model.b], 0.0001)  
+for epoch in range(200_000):
     model.loss(x_train, y_train).backward()
     optimizer.step()
     optimizer.zero_grad()
