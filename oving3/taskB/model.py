@@ -6,15 +6,16 @@ class ConvolutionalNeuralNetworkModel(nn.Module):
     def __init__(self):
         super(ConvolutionalNeuralNetworkModel, self).__init__()
 
-        # Model layers (includes initialized model variables):
-        self.conv = nn.Conv2d(1, 32, kernel_size=5, padding=2)
-        self.pool = nn.MaxPool2d(kernel_size=2)
-        self.dense = nn.Linear(32 * 14 * 14, 10)
+        self.layer1 = nn.Sequential(nn.Conv2d(1, 32, kernel_size=5, padding=2), nn.MaxPool2d(kernel_size=2))
+        self.layer2 = nn.Sequential(nn.Conv2d(32, 64, kernel_size=5, padding=2), nn.MaxPool2d(kernel_size=2))
+        self.layer3 = nn.Linear(64 * 7 * 7, 1024)
+        self.layer4 = nn.Linear(1024, 10)
 
     def logits(self, x):
-        x = self.conv(x)
-        x = self.pool(x)
-        return self.dense(x.reshape(-1, 32 * 14 * 14))
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x.reshape(-1, 64 * 7 * 7))
+        return self.layer4(x.reshape(-1, 1024))
 
     # Predictor
     def f(self, x):

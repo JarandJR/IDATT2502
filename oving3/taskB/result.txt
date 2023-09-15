@@ -1,0 +1,3 @@
+Accuracy:   start training..
+            accuracy = tensor(0.9600)
+            done

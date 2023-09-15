@@ -12,9 +12,9 @@ class ConvolutionalNeuralNetworkModel(nn.Module):
         self.layer3 = nn.Linear(64 * 7 * 7, 10)
 
     def logits(self, x):
-        x = self.conv(x)
-        x = self.pool(x)
-        return self.dense(x.reshape(-1, 32 * 14 * 14))
+        x = self.layer1(x)
+        x = self.layer2(x)
+        return self.layer3(x.reshape(-1, 64 * 7 * 7))
 
     # Predictor
     def f(self, x):
