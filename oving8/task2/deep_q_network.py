@@ -30,38 +30,71 @@ class DQNAgent:
         self.q_network = DQN(self.state_size, self.num_actions)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.alpha)
 
-    def train(self):
+    def train(self, visualize):
         print("Training...")
-        rewards = 0
+        rewards = []
+        loss_history = [] 
+        episode_rewards = []
 
         for episode in range(self.episodes):
-            state = self.env.reset()
+            if episode == 2_100 and visualize:
+                self.env = gym.make("CartPole-v1", render_mode="human")
+            state, _ = self.env.reset()
             score = 0
             done = False
 
             while not done:
                 action = self.select_action(state)
-                next_state, reward, done, _ = self.env.step(action)
+                next_state, reward, done, _, _ = self.env.step(action)
                 score += reward
 
-                target_q = reward + self.gamma * torch.max(self.q_network(torch.tensor(next_state)).detach())
-                current_q = self.q_network(torch.tensor(state))[action]
+                with torch.no_grad():
+                    target_q = reward + self.gamma * torch.max(self.q_network(torch.tensor(next_state)))
+                tensor = torch.tensor(self.get_tensor_state(state))
+                current_q = self.q_network(tensor)[action]
 
                 loss = nn.MSELoss()(current_q, target_q)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
 
+                loss_history.append(loss.item())
                 state = next_state
 
-            rewards += score
+            episode_rewards.append(score)
+            rewards.append(score)
+            if score > 195 and episode > 100:
+                print(f"Solved in {episode} episodes")
+                break
+            if episode % 10 == 0:
+                print(f"Episode {episode}, Avg Reward: {np.mean(episode_rewards[-10:])}, Loss: {loss_history[-1]}")
 
         self.env.close()
+        print(f"Training finished after {self.episodes} episodes. Mean episode reward: {np.mean(rewards)}")
+        
+        # Plot loss and episode rewards
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(12, 6))
+        plt.subplot(211)
+        plt.plot(loss_history)
+        plt.title("Training Loss")
+        plt.xlabel("Step")
+        plt.ylabel("Loss")
+        plt.subplot(212)
+        plt.plot(episode_rewards)
+        plt.title("Episode Rewards")
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        plt.show()
+
+    def get_tensor_state(self, state):
+        return torch.tensor(state, dtype=torch.float32)
 
     def select_action(self, state):
         if np.random.rand() < self.exploration_rate:
             return self.env.action_space.sample()
         else:
             with torch.no_grad():
-                q_values = self.q_network(torch.tensor(state))
+                state_tensor = self.get_tensor_state(state)
+                q_values = self.q_network(torch.tensor(state_tensor))
                 return torch.argmax(q_values).item()
