@@ -15,14 +15,11 @@ class QLearn:
         self.q_table = np.zeros([self.bin_size] * len(self.state_bins) + [num_actions])
 
 
-    def train(self, visualize):
+    def train(self):
         print("training..")
         rewards = 0
 
         for episode in range(self.episodes):
-            if episode == 1_100 and visualize:
-                self.env = gym.make("CartPole-v1", render_mode="human")
-
             score = 0
             done = False
             state, _ = self.env.reset()
@@ -44,10 +41,32 @@ class QLearn:
                 state = next_state
 
             rewards += score
-            if score > 195 and episode > 100:
-                print(f"Solved in {episode} episodes")
-                break
+            if episode % 10 == 0:
+                print(f"Episode {episode}, score: {score}")
         self.env.close()
+
+    def test(self):
+        self.env = gym.make("CartPole-v1", render_mode="human")
+        
+        rewards = []
+        episode_rewards = []
+        for episode in range(10):            
+            score = 0
+            done = False
+            state, _ = self.env.reset()
+            state = self.discretize_state(state)
+            while not done:
+                action = np.argmax(self.q_table[state])
+                next_state, reward, done, _, _ = self.env.step(action)
+                next_state = self.discretize_state(next_state)
+                state = next_state
+                score += reward
+
+            rewards.append(score)
+            print(f"Episode {episode + 1}, Total Reward: {score}")
+
+        self.env.close()
+        print(f"Average Total Reward over 10 episodes: {np.mean(rewards)}")
 
     def create_bins(self):
         bins = [

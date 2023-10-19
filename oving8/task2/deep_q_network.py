@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import gymnasium as gym
 import torch
@@ -30,24 +31,27 @@ class DQNAgent:
         self.q_network = DQN(self.state_size, self.num_actions)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.alpha)
 
-    def train(self, visualize):
+    def train(self):
         print("Training...")
         rewards = []
         loss_history = [] 
         episode_rewards = []
 
         for episode in range(self.episodes):
-            if episode == 2_100 and visualize:
-                self.env = gym.make("CartPole-v1", render_mode="human")
             state, _ = self.env.reset()
             score = 0
             done = False
+            step = 0
 
             while not done:
+                step += 1
                 action = self.select_action(state)
                 next_state, reward, done, _, _ = self.env.step(action)
-                score += reward
+                reward = self.get_reward(done, step, reward)
+                if score > 500:
+                    break
 
+                score += reward
                 with torch.no_grad():
                     target_q = reward + self.gamma * torch.max(self.q_network(torch.tensor(next_state)))
                 tensor = torch.tensor(self.get_tensor_state(state))
@@ -63,29 +67,49 @@ class DQNAgent:
 
             episode_rewards.append(score)
             rewards.append(score)
-            if score > 195 and episode > 100:
-                print(f"Solved in {episode} episodes")
-                break
+
             if episode % 10 == 0:
-                print(f"Episode {episode}, Avg Reward: {np.mean(episode_rewards[-10:])}, Loss: {loss_history[-1]}")
+                print(f"Episode {episode}, Avg Reward: {np.mean(episode_rewards[-10:])}, Loss: {loss_history[-1]}, score: {score}")
 
         self.env.close()
         print(f"Training finished after {self.episodes} episodes. Mean episode reward: {np.mean(rewards)}")
-        
-        # Plot loss and episode rewards
-        import matplotlib.pyplot as plt
+        self.plot_episode_reards(episode_rewards)
+
+    def test(self):
+        self.env = gym.make("CartPole-v1", render_mode="human")        
+        rewards = []
+        episode_rewards = []
+        for episode in range(10):            
+            state, _ = self.env.reset()
+            score = 0
+            done = False
+
+            while not done:
+                action = self.select_action(state)
+                next_state, reward, done, _, _ = self.env.step(action)
+                score += reward
+                state = next_state
+            
+            rewards.append(score)
+            episode_rewards.append(score)
+            print(f"Episode {episode + 1}, Total Reward: {score}")
+
+        self.env.close()
+        print(f"Average Total Reward over 10 episodes: {np.mean(rewards)}")
+        self.plot_episode_reards(episode_rewards)
+
+    def plot_episode_reards(self, episode_rewards):
         plt.figure(figsize=(12, 6))
-        plt.subplot(211)
-        plt.plot(loss_history)
-        plt.title("Training Loss")
-        plt.xlabel("Step")
-        plt.ylabel("Loss")
-        plt.subplot(212)
         plt.plot(episode_rewards)
         plt.title("Episode Rewards")
         plt.xlabel("Episode")
         plt.ylabel("Total Reward")
         plt.show()
+
+    def get_reward(self, done, step, reward):
+        if not done or step == self.env._max_episode_steps-1:
+            return reward
+        return -100
 
     def get_tensor_state(self, state):
         return torch.tensor(state, dtype=torch.float32)
