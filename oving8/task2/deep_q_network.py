@@ -32,7 +32,7 @@ class DQNAgent:
 
     def train(self):
         print("Training...")
-        rewards = 0
+        rewards = []
 
         for episode in range(self.episodes):
             state = self.env.reset()
@@ -44,7 +44,8 @@ class DQNAgent:
                 next_state, reward, done, _ = self.env.step(action)
                 score += reward
 
-                target_q = reward + self.gamma * torch.max(self.q_network(torch.tensor(next_state)).detach())
+                with torch.no_grad():
+                    target_q = reward + self.gamma * torch.max(self.q_network(torch.tensor(next_state)).detach())
                 current_q = self.q_network(torch.tensor(state))[action]
 
                 loss = nn.MSELoss()(current_q, target_q)
@@ -54,9 +55,10 @@ class DQNAgent:
 
                 state = next_state
 
-            rewards += score
+            rewards.append(score)
 
         self.env.close()
+        print("Mean episode reward:", np.mean(rewards))
 
     def select_action(self, state):
         if np.random.rand() < self.exploration_rate:
